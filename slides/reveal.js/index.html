@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <title>Beyond Kafka</title>
+
+    <link rel="stylesheet" href="dist/reset.css" />
+    <link rel="stylesheet" href="dist/reveal.css" />
+    <link rel="stylesheet" href="dist/theme/white.css" />
+
+    <!-- Theme used for syntax highlighted code -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h1 style="color: #d63031">Beyond Kafka</h1>
+          <h3 style="color: #0984e3">Schema, Streams & Connectors</h3>
+          <p>
+            <small style="color: #6c5ce7">Ajithkumar Sekar</small><br />
+            <small style="color: #00b894"
+              >Senior Software Developer at Weave Communications</small
+            >
+          </p>
+        </section>
+        <section>
+          <h2 style="color: #d63031">Agenda 📋</h2>
+          <ul>
+            <li style="color: #0984e3">🚀 Kafka Intro</li>
+            <li style="color: #6c5ce7">📝 Schemas</li>
+            <li style="color: #00b894">🔌 Kafka Connectors</li>
+            <li style="color: #fd79a8">💾 KSQL DB</li>
+          </ul>
+        </section>
+        <section>
+          <section>
+            <h2 style="color: #0984e3">🚀 Kafka Introduction</h2>
+            <p style="color: #6c5ce7">
+              Apache Kafka is a distributed event streaming platform
+            </p>
+            <div style="text-align: left; margin: 20px 40px; font-size: 0.8em">
+              <p>
+                <strong style="color: #d63031">Producers</strong>
+                <span style="color: #2d3436"
+                  >→ publish messages/events to topics</span
+                >
+              </p>
+              <p>
+                <strong style="color: #d63031">Topics</strong>
+                <span style="color: #2d3436"
+                  >→ categorized streams of data stored in clusters</span
+                >
+              </p>
+              <p>
+                <strong style="color: #d63031">Consumers</strong>
+                <span style="color: #2d3436"
+                  >→ subscribe to topics and process messages</span
+                >
+              </p>
+            </div>
+            <p style="color: #0984e3; font-size: 0.7em; margin-top: 30px">
+              High throughput, scalable, and fault-tolerant messaging system
+            </p>
+          </section>
+          <section>
+            <h2 style="color: #0984e3">Kafka Architecture <small style="color: #0984e3; font-size: 0.5em; text-transform: lowercase;">(simplified)</small></h2>
+            <pre class="mermaid">
+graph LR
+    P1[Producer 1] -->|publish| KC
+    P2[Producer 2] -->|publish| KC
+    
+    subgraph KC[Kafka Cluster]
+        T1[Topic: orders]
+    end
+    
+    KC -->|subscribe| C1[Consumer 1]
+    KC -->|subscribe| C2[Consumer 2]
+    KC -->|subscribe| C3[Consumer 3]
+    
+    style P1 fill:#d63031,stroke:#333,color:#fff
+    style P2 fill:#d63031,stroke:#333,color:#fff
+    style T1 fill:#0984e3,stroke:#333,color:#fff
+    style KC fill:#fdcb6e,stroke:#333,color:#000
+    style C1 fill:#00b894,stroke:#333,color:#fff
+    style C2 fill:#00b894,stroke:#333,color:#fff
+    style C3 fill:#00b894,stroke:#333,color:#fff
+            </pre>
+          </section>
+          <section>
+            <h2 style="color: #d63031">Python Producer 📤</h2>
+            <pre
+              style="font-size: 0.45em"
+            ><code class="language-python" data-trim data-noescape data-line-numbers>
+from kafka import KafkaProducer
+import json
+
+# Initialize producer
+producer = KafkaProducer(
+    bootstrap_servers=['localhost:9092'],
+    value_serializer=lambda v: json.dumps(v).encode('utf-8')
+)
+
+# Send message
+message = {'order_id': 12345, 'product': 'Laptop', 'quantity': 2}
+
+producer.send('orders', value=message)
+producer.flush()
+				</code></pre>
+          </section>
+          <section>
+            <h2 style="color: #00b894">Python Consumer 📥</h2>
+            <pre
+              style="font-size: 0.45em"
+            ><code class="language-python" data-trim data-noescape data-line-numbers>
+from kafka import KafkaConsumer
+import json
+
+# Initialize consumer
+consumer = KafkaConsumer(
+    'orders',
+    bootstrap_servers=['localhost:9092'],
+    value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+    auto_offset_reset='earliest',
+    group_id='order-processor'
+)
+
+# Process messages
+for message in consumer:
+    order = message.value
+    print(f"An order of {order['product']} with quantity {order['quantity']} received.")
+				</code></pre>
+		  </section>
+		  <section>
+			<h2 style="color: #d63031;">Questions to Consider</h2>
+			<div style="margin-top: 40px;">
+				<p style="color: #0984e3; font-size: 0.9em;">What happens once an order message is consumed?</p>
+				<p style="color: #6c5ce7; font-size: 0.9em; margin-top: 20px;">Do you see any inefficiencies in the events being sent?</p>
+			</div>
+		  </section>
+		  <section>
+			<h2 style="color: #d63031;">Challenges with Raw JSON</h2>
+			<ul style="font-size: 0.85em; line-height: 1.8;">
+				<li style="color: #0984e3;">Kafka stores events on disk until retention period expires</li>
+				<li style="color: #6c5ce7;">Repetitive JSON key names for every single event = wasted storage</li>
+				<li style="color: #00b894;">Lack of contract between producer and consumer</li>
+				<li style="color: #fd79a8;">No validation = potential runtime errors</li>
+			</ul>
+		  </section>
+		</section>
+		<section>
+			<section>
+				<h2 style="color: #6c5ce7;">Schema Registry</h2>
+				<p style="color: #0984e3; margin-top: 30px;">Centralized service for managing and validating schemas</p>
+				<div style="text-align: left; margin: 20px 40px; font-size: 0.85em; margin-top: 40px;">
+					<p><strong style="color: #d63031;">Benefits:</strong></p>
+					<ul style="margin-left: 40px; line-height: 1.8;">
+						<li style="color: #0984e3;">Data contract enforcement</li>
+						<li style="color: #6c5ce7;">Message validation</li>
+						<li style="color: #00b894;">Reduced storage (Avro, Protobuf)</li>
+						<li style="color: #fd79a8;">Schema evolution support</li>
+					</ul>
+				</div>
+			</section>
+			<section>
+				<h2 style="color: #6c5ce7;">Serialization Formats</h2>
+				<div style="display: flex; justify-content: space-around; margin-top: 40px;">
+					<div style="width: 45%;">
+						<h3 style="color: #d63031; font-size: 0.9em;">Avro</h3>
+						<pre style="font-size: 0.35em;"><code class="language-json" data-trim>
+{
+  "type": "record",
+  "name": "Order",
+  "fields": [
+    {"name": "order_id", "type": "int"},
+    {"name": "product", "type": "string"},
+    {"name": "quantity", "type": "int"}
+  ]
+}
+						</code></pre>
+						<ul style="font-size: 0.7em; text-align: left; line-height: 1.6;">
+							<li style="color: #0984e3;">Compact binary format</li>
+							<li style="color: #6c5ce7;">Schema in JSON</li>
+							<li style="color: #00b894;">Dynamic typing</li>
+						</ul>
+					</div>
+					<div style="width: 45%;">
+						<h3 style="color: #d63031; font-size: 0.9em;">Protobuf</h3>
+						<pre style="font-size: 0.35em;"><code class="language-protobuf" data-trim>
+message Order {
+  int32 order_id = 1;
+  string product = 2;
+  int32 quantity = 3;
+}
+						</code></pre>
+						<ul style="font-size: 0.7em; text-align: left; line-height: 1.6;">
+							<li style="color: #0984e3;">Highly efficient</li>
+							<li style="color: #6c5ce7;">Strongly typed</li>
+							<li style="color: #00b894;">Language-agnostic</li>
+						</ul>
+					</div>
+				</div>
+			</section>
+			<section>
+				<h2 style="color: #6c5ce7;">Storage Comparison: JSON vs Avro</h2>
+				<div style="display: flex; justify-content: space-around; margin-top: 30px;">
+					<div style="width: 48%;">
+						<h3 style="color: #d63031; font-size: 0.85em;">JSON (78 bytes)</h3>
+						<pre style="font-size: 0.32em;"><code class="language-json" data-trim>
+{"order_id": 12345, 
+ "product": "Laptop", 
+ "quantity": 2}
+{"order_id": 12346, 
+ "product": "Mouse", 
+ "quantity": 5}
+{"order_id": 12347, 
+ "product": "Keyboard", 
+ "quantity": 1}
+						</code></pre>
+						<p style="font-size: 0.65em; color: #d63031; margin-top: 10px;">❌ Repetitive keys</p>
+						<p style="font-size: 0.65em; color: #d63031;">❌ Wasteful storage</p>
+					</div>
+					<div style="width: 48%;">
+						<h3 style="color: #00b894; font-size: 0.85em;">Avro (≈40 bytes)</h3>
+						<pre style="font-size: 0.32em;"><code class="language-text" data-trim>
+[ID:001][0x3039 
+        "Laptop" 0x02]
+[ID:001][0x303A 
+        "Mouse" 0x05]
+[ID:001][0x303B 
+        "Keyboard" 0x01]
+						</code></pre>
+						<p style="font-size: 0.65em; color: #00b894; margin-top: 10px;">✓ Schema separate</p>
+						<p style="font-size: 0.65em; color: #00b894;">✓ 50% reduction</p>
+					</div>
+				</div>
+			</section>
+			<section>
+				<h2 style="color: #6c5ce7;">Schema Registry Architecture</h2>
+				<pre class="mermaid">
+graph TB
+    P[Producer] -->|1. Get Schema| SR[Schema Registry]
+    SR -->|2. Return Schema ID| P
+    P -->|3. Serialize with Schema ID| KC[Kafka Cluster]
+    KC -->|4. Read Message| C[Consumer]
+    C -->|5. Get Schema by ID| SR
+    SR -->|6. Return Schema| C
+    
+    style P fill:#d63031,stroke:#333,color:#fff
+    style SR fill:#6c5ce7,stroke:#333,color:#fff
+    style KC fill:#fdcb6e,stroke:#333,color:#000
+    style C fill:#00b894,stroke:#333,color:#fff
+				</pre>
+			</section>
+			
+			<section>
+				<h2 style="color: #6c5ce7;">Live Demo</h2>
+			</section>
+		</section>
+		<section>
+			<section>
+				<h2 style="color: #00b894;">Kafka Connectors</h2>
+				<p style="color: #0984e3; margin-top: 30px;">Framework for integrating Kafka with external systems</p>
+				<div style="text-align: left; margin: 20px 40px; font-size: 0.85em; margin-top: 40px;">
+					<p><strong style="color: #d63031;">Types of Connectors:</strong></p>
+					<ul style="margin-left: 40px; line-height: 1.8;">
+						<li style="color: #0984e3;">Source Connectors (External System → Kafka)</li>
+						<li style="color: #6c5ce7;">Sink Connectors (Kafka → External System)</li>
+					</ul>
+				</div>
+			</section>
+			<section>
+				<h2 style="color: #00b894;">Kafka Connect Overview</h2>
+				<pre class="mermaid">
+graph LR
+    DB[(Database)] -->|Source Connector| KC[Kafka Connector]
+    API[REST API] -->|Source Connector| KC
+    KC -->|Publish| KT[Kafka Topics]
+    KT -->|Consume| KC2[Kafka Connector]
+    KC2 -->|Sink Connector| ES[(Elasticsearch)]
+    KC2 -->|Sink Connector| S3[(S3 Storage)]
+    KC2 -->|Sink Connector| HDFS[(HDFS)]
+    
+    style DB fill:#0984e3,stroke:#333,color:#fff
+    style API fill:#0984e3,stroke:#333,color:#fff
+    style KC fill:#00b894,stroke:#333,color:#fff
+    style KT fill:#fdcb6e,stroke:#333,color:#000
+    style KC2 fill:#00b894,stroke:#333,color:#fff
+    style ES fill:#6c5ce7,stroke:#333,color:#fff
+    style S3 fill:#6c5ce7,stroke:#333,color:#fff
+    style HDFS fill:#6c5ce7,stroke:#333,color:#fff
+				</pre>
+			</section>
+			<section>
+			 	<h2 style="color: #6c5ce7;">Live Demo</h2>
+			</section>
+		</section>
+		<section>
+			<section>
+				<h2 style="color: #fd79a8;">KSQL DB</h2>
+				<p style="color: #0984e3; margin-top: 30px;">Stream processing using SQL-like queries</p>
+				<div style="text-align: left; margin: 20px 40px; font-size: 0.85em; margin-top: 40px;">
+					<p><strong style="color: #d63031;">Features:</strong></p>
+					<ul style="margin-left: 40px; line-height: 1.8;">
+						<li style="color: #0984e3;">Real-time data transformation</li>
+						<li style="color: #6c5ce7;">Filtering and aggregations</li>
+						<li style="color: #00b894;">Joining streams and tables</li>
+						<li style="color: #fd79a8;">Materialized views</li>
+					</ul>
+				</div>
+			</section>
+		<section>
+			<h2 style="color: #fd79a8;">KSQL DB Architecture</h2>
+			<pre class="mermaid">
+				graph TB
+					KT[Kafka Topics] --> KSQL[KSQL DB Engine]
+					KSQL -->|SQL Queries| ST[Streams & Tables]
+					ST -->|Process| KSQL
+					KSQL -->|Write Results| KT2[Output Topics]
+					KSQL -->|Materialized Views| MV[State Stores]
+					
+					style KT fill:#fdcb6e,stroke:#333,color:#000
+					style KSQL fill:#fd79a8,stroke:#333,color:#fff
+					style ST fill:#6c5ce7,stroke:#333,color:#fff
+					style KT2 fill:#fdcb6e,stroke:#333,color:#000
+					style MV fill:#00b894,stroke:#333,color:#fff
+			</pre>
+		</section>
+			<section>
+				<h2 style="color: #fd79a8;">KSQL DB Capabilities</h2>
+				<div style="margin-top: 60px;">
+					<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; font-size: 0.9em;">
+						<div style="padding: 30px; background: #f8f9fa; border-left: 4px solid #0984e3;">
+							<h3 style="color: #0984e3; font-size: 1em; margin-bottom: 15px;">Filter & Transform</h3>
+							<p style="color: #2d3436; font-size: 0.85em;">Real-time data filtering and transformation</p>
+						</div>
+						<div style="padding: 30px; background: #f8f9fa; border-left: 4px solid #6c5ce7;">
+							<h3 style="color: #6c5ce7; font-size: 1em; margin-bottom: 15px;">Aggregations</h3>
+							<p style="color: #2d3436; font-size: 0.85em;">COUNT, SUM, AVG with GROUP BY</p>
+						</div>
+						<div style="padding: 30px; background: #f8f9fa; border-left: 4px solid #00b894;">
+							<h3 style="color: #00b894; font-size: 1em; margin-bottom: 15px;">Joins</h3>
+							<p style="color: #2d3436; font-size: 0.85em;">Stream-stream and stream-table joins</p>
+						</div>
+						<div style="padding: 30px; background: #f8f9fa; border-left: 4px solid #fd79a8;">
+							<h3 style="color: #fd79a8; font-size: 1em; margin-bottom: 15px;">Windowing</h3>
+							<p style="color: #2d3436; font-size: 0.85em;">Tumbling, hopping, and session windows</p>
+						</div>
+					</div>
+				</div>
+			</section>
+			<section>
+				<h2 style="color: #fd79a8;">KSQL Example: Create Stream</h2>
+				<pre style="font-size: 0.45em;"><code class="language-sql" data-trim data-line-numbers>
+-- Create a stream from Kafka topic
+CREATE STREAM logs_stream (
+  timestamp VARCHAR,
+  app VARCHAR,
+  level VARCHAR,
+  msg VARCHAR
+) WITH (
+  KAFKA_TOPIC='logs',
+  VALUE_FORMAT='JSON'
+);
+				</code></pre>
+			</section>
+			<section>
+				<h2 style="color: #fd79a8;">KSQL Example: Filter Stream</h2>
+				<pre style="font-size: 0.45em;"><code class="language-sql" data-trim data-line-numbers>
+-- Create order service error stream
+CREATE STREAM order_errors AS
+  SELECT timestamp, app, msg
+  FROM logs_stream
+  WHERE level = 'ERROR'
+    AND app = 'order-service';
+				</code></pre>
+			</section>
+			<section>
+				<h2 style="color: #fd79a8;">KSQL Example: Aggregation</h2>
+				<pre style="font-size: 0.45em;"><code class="language-sql" data-trim data-line-numbers>
+-- Aggregate error counts by app in last 1 hour
+CREATE TABLE error_counts AS
+  SELECT app,
+         COUNT(*) AS error_count,
+         COLLECT_LIST(msg) AS recent_errors
+  FROM logs_stream
+  WHERE level = 'ERROR'
+  WINDOW TUMBLING (SIZE 1 HOUR)
+  GROUP BY app;
+				</code></pre>
+			</section>
+			<section>
+				<h2 style="color: #fd79a8;">Live Demo</h2>
+			</section>
+		</section>
+		<section>
+			<h2 style="color: #306dd6;">Questions?</h2>
+		</section>
+		<section>
+			<h1 style="color: #304ed6;">Thank You!</h1>
+		</section>
+        </section>
+      </div>
+    </div>
+
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ 
+        startOnLoad: false,
+        theme: 'default'
+      });
+      
+      Reveal.initialize({
+        hash: true,
+        plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
+      });
+      
+      // Render mermaid diagrams when slides are ready
+      Reveal.on('ready', () => {
+        mermaid.run({
+          querySelector: '.mermaid'
+        });
+      });
+      
+      // Re-render when navigating to slides with mermaid diagrams
+      Reveal.on('slidechanged', (event) => {
+        const currentSlide = event.currentSlide;
+        if (currentSlide.querySelector('.mermaid')) {
+          mermaid.run({
+            querySelector: '.mermaid',
+            nodes: currentSlide.querySelectorAll('.mermaid')
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

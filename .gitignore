@@ -1,0 +1,18 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Node.js / reveal.js
+slides/reveal.js/node_modules/
+slides/reveal.js/npm-debug.log*
+slides/reveal.js/yarn-debug.log*
+slides/reveal.js/yarn-error.log*
+slides/reveal.js/.npm
+slides/reveal.js/.eslintcache

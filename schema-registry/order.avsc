@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "Order",
+  "fields": [
+    {"name": "order_id", "type": "string"},
+    {"name": "amount", "type": "double"},
+    {"name": "status", "type": "string"},
+    {"name": "edd", "type": "string", "default": ""}
+  ]
+}
