@@ -1,6 +1,6 @@
 # Beyond Kafka: Schema, Streams & Connectors
 
-🎤 **Slides are live at:** https://ajinux.github.io/beyond-kafka-talk-sources/slides/reveal.js/  
+🎤 **Slides are live at:** [https://ajinux.github.io/beyond-kafka-talk-sources/slides/reveal.js/](https://ajinux.github.io/beyond-kafka-talk-sources/slides/reveal.js/)  
 *(Refresh the slide if you see any mermaid error)*
 
 This repository contains code examples and presentation materials for exploring advanced Kafka features including Schema Registry, Kafka Connectors, and KSQL DB.
