@@ -1,5 +1,8 @@
 # Beyond Kafka: Schema, Streams & Connectors
 
+🎤 **Slides are live at:** https://ajinux.github.io/beyond-kafka-talk-sources/slides/reveal.js/  
+*(Refresh the slide if you see any mermaid error)*
+
 This repository contains code examples and presentation materials for exploring advanced Kafka features including Schema Registry, Kafka Connectors, and KSQL DB.
 
 ## Overview
@@ -20,7 +23,7 @@ Learn how Schema Registry provides data contract enforcement, message validation
 - Support schema evolution
 - Validate messages at production time
 
-**Try it:**
+**Try it:** [See schema-registry/readme.md](./schema-registry/readme.md)
 - Run Schema Registry with Docker
 - Compare message sizes between JSON and Avro formats
 - Inspect Kafka topic data on disk to see the difference
@@ -33,7 +36,7 @@ Discover how Kafka Connect provides a framework for integrating Kafka with exter
 - **Source Connectors** - Import data from external systems into Kafka
 - **Sink Connectors** - Export data from Kafka to external systems
 
-**Demo Example:**
+**Demo Example:** [See connector/readme.md](./connector/readme.md)
 - Read events from `product_reviews` Kafka topic
 - Automatically sink data to PostgreSQL using JDBC connector
 - No custom consumer code required
@@ -49,7 +52,7 @@ Explore stream processing capabilities using SQL-like queries for real-time data
 - Windowing support (tumbling, hopping, session)
 - Materialized views
 
-**Demo Example:**
+**Demo Example:** [See ksqldb/readme.md](./ksqldb/readme.md)
 - Create streams from Kafka topics
 - Filter application error logs
 - Aggregate error counts by application
