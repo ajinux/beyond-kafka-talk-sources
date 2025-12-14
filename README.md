@@ -23,7 +23,7 @@ Learn how Schema Registry provides data contract enforcement, message validation
 - Support schema evolution
 - Validate messages at production time
 
-**Try it:** [See schema-registry/readme.md](./schema-registry/readme.md)
+**Demo Example:** [See schema-registry/readme.md](./schema-registry/readme.md)
 - Run Schema Registry with Docker
 - Compare message sizes between JSON and Avro formats
 - Inspect Kafka topic data on disk to see the difference
